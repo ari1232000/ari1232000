@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard MQTT</title>
+</head>
+<body>
+    <p>Nilai LDR</p>
+    <h1 id="ldr">00</h1>
+    <button id="ledON" onclick="fungsi_led_on()">LED ON</button>
+    <button id="ledOFF" onclick="fungsi_led_off()">LED OFF</button>
+</body>
+
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<script>
+    const clientId ='AkuR12';
+    const host = 'ws://broker.emqx.io:8083/mqtt';
+    const topic1 = 'esp32/message';
+    const topic2 = 'esp32/received';
+        
+    const options = {
+        keepalive: 60,
+        lientId: clientId, 
+        protocolId: 'MQTT',
+        protocolVersion: 4,
+        clean: true,
+        reconnectPeriod: 1000,
+        connectTimeout: 30 * 1000,
+        will: {
+            topic: 'WillMsg',
+            payload: 'Connection Closed abnormally..!',
+            qos: 0,
+            retain: false
+        },
+    }
+
+    console.log('Connecting to MQTT...');
+    const client =mqtt.connect(host, options);
+    client.on('error', (err) => {
+        console.log('error detected: ', err);
+        client.end();
+    });
+
+    client.on('reconnect', () => {
+        console.log('reconnecting...');
+    }) 
+
+    client.on('connect', () => {
+        console.log("Connected to MQTT Server");
+        client.subscribe(topic1, { qos: 0 });
+    })
+
+    function fungsi_led_on(){
+        client.publish(topic2, 'ON', { qos: 0, retain:false });
+    }
+
+    function fungsi_led_off(){
+        client.publish(topic2, 'OFF', { qos: 0, retain:false });
+    }
+
+    client.publish(topic2, 'ON', { qos: 0, retain:false });
+
+    client.on('message', (topic, message, paket) => {
+        console.log(`Recived Message: ${message.toString()} On topic: ${topic}`)
+
+        if(topic == topic1){
+            document.getElementById('ldr').innerHTML = message.toString();
+        }
+    })
+
+</script>
+</html>
+
